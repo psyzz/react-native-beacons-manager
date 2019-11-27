@@ -4,8 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.RemoteException;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -31,8 +32,10 @@ import org.altbeacon.beacon.Region;
 import org.altbeacon.beacon.service.ArmaRssiFilter;
 import org.altbeacon.beacon.service.RunningAverageRssiFilter;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements BeaconConsumer {
@@ -277,6 +280,24 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
       }
   }
 
+  @ReactMethod
+  public void startMonitoringWithMacAddress(String regionId, String beaconUuid, String bluetoothAddress, int minor, int major, Callback resolve, Callback reject) {
+      Log.d(LOG_TAG, "startMonitoringWithMacAddress, monitoringRegionId: " + regionId + "bluetoothAddress : "+ bluetoothAddress  + ", monitoringBeaconUuid: " + beaconUuid + ", minor: " + minor + ", major: " + major);
+      // Toast.makeText(getApplicationContext(),"startMonitoringWithMacAddress beaconUuid: "+beaconUuid + " / bluetoothAddress : " +bluetoothAddress,Toast.LENGTH_LONG).show();
+      try {
+          Region region = createRegion(
+            regionId,
+            beaconUuid,
+            bluetoothAddress
+          );
+          mBeaconManager.startMonitoringBeaconsInRegion(region);
+          resolve.invoke();
+      } catch (Exception e) {
+          Log.e(LOG_TAG, "startMonitoring, error: ", e);
+          reject.invoke(e.getMessage());
+      }
+  }
+
   private MonitorNotifier mMonitorNotifier = new MonitorNotifier() {
       @Override
       public void didEnterRegion(Region region) {
@@ -323,6 +344,24 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
       }
   }
 
+  @ReactMethod
+  public void stopMonitoringWithMacAddress(String regionId, String beaconUuid, String bluetoothAddress, int minor, int major, Callback resolve, Callback reject) {
+      Region region = createRegion(
+        regionId,
+        beaconUuid,
+        bluetoothAddress
+      );
+
+      try {
+          mBeaconManager.stopMonitoringBeaconsInRegion(region);
+          // Toast.makeText(getApplicationContext(),"stopMonitoringWithMacAddress beaconUuid: "+beaconUuid + " / bluetoothAddress : " +bluetoothAddress,Toast.LENGTH_LONG).show();
+          resolve.invoke();
+      } catch (Exception e) {
+          Log.e(LOG_TAG, "stopMonitoring, error: ", e);
+          reject.invoke(e.getMessage());
+      }
+  }
+
   /***********************************************************************************************
    * Ranging
    **********************************************************************************************/
@@ -360,6 +399,8 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
               b.putInt("major", beacon.getId2().toInt());
               b.putInt("minor", beacon.getId3().toInt());
           }
+          b.putString("address", beacon.getBluetoothAddress());
+          b.putString("name", beacon.getBluetoothName());
           b.putInt("rssi", beacon.getRssi());
           if(beacon.getDistance() == Double.POSITIVE_INFINITY
                     || Double.isNaN(beacon.getDistance())
@@ -416,6 +457,13 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
   private Region createRegion(String regionId, String beaconUuid) {
       Identifier id1 = (beaconUuid == null) ? null : Identifier.parse(beaconUuid);
       return new Region(regionId, id1, null, null);
+  }
+
+  private Region createRegion(String regionId, String beaconUuid, String bluetoothAddress) {
+      Identifier id_beacon_uuid = (beaconUuid == null) ? null : Identifier.parse(beaconUuid);
+      List<Identifier> ids = new ArrayList<>();
+      ids.add(id_beacon_uuid);
+      return new Region(regionId, ids, bluetoothAddress);
   }
 
   private Region createRegion(String regionId, String beaconUuid, String minor, String major) {
