@@ -284,6 +284,9 @@ public class BeaconsAndroidModule extends ReactContextBaseJavaModule implements 
   public void startMonitoringWithMacAddress(String regionId, String beaconUuid, String bluetoothAddress, int minor, int major, Callback resolve, Callback reject) {
       Log.d(LOG_TAG, "startMonitoringWithMacAddress, monitoringRegionId: " + regionId + "bluetoothAddress : "+ bluetoothAddress  + ", monitoringBeaconUuid: " + beaconUuid + ", minor: " + minor + ", major: " + major);
       // Toast.makeText(getApplicationContext(),"startMonitoringWithMacAddress beaconUuid: "+beaconUuid + " / bluetoothAddress : " +bluetoothAddress,Toast.LENGTH_LONG).show();
+      
+      mBeaconManager.setRegionStatePeristenceEnabled(false);
+      
       try {
           Region region = createRegion(
             regionId,
